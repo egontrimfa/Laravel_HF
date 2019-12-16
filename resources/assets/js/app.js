@@ -4,10 +4,20 @@
  * includes Vue and other libraries. It is a great starting point when
  * building robust, powerful web applications using Vue and Laravel.
  */
+import Vue from 'vue'
+import VueAxios from 'vue-axios';
+import axios from 'axios';
+import BootstrapVue from 'bootstrap-vue';
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-vue/dist/bootstrap-vue.css';
 
 require('./bootstrap');
 
 window.Vue = require('vue');
+Vue.use(VueAxios, axios);
+Vue.use(BootstrapVue);
+
+//import './custom.scss';
 
 /**
  * Next, we will create a fresh Vue application instance and attach it to
@@ -16,10 +26,37 @@ window.Vue = require('vue');
  */
 
 Vue.component('example-component', require('./components/ExampleComponent.vue'));
+Vue.component('students', require('./components/Students.vue').default);
+Vue.component('thread-view', require('./pages/Thread.vue'));
+
+const options = {
+    transformAssetUrls: {
+        video: ['src', 'poster'],
+        source: 'src',
+        img: 'src',
+        image: 'xlink:href',
+        'b-img': 'src',
+        'b-img-lazy': ['src', 'blank-src'],
+        'b-card': 'img-src',
+        'b-card-img': 'src',
+        'b-card-img-lazy': ['src', 'blank-src'],
+        'b-carousel-slide': 'img-src',
+        'b-embed': 'src'
+        }
+    }
 
 const app = new Vue({
     el: '#app',
     data:{
+        students:[],
+        students_edit:{},
+        fields: ['first_name', 'last_name', 'email', 'actions'],
+        student:{
+            id:'',
+            first_name:'',
+            last_name:'',
+            email:'',
+        },
         products:[],
         product_edit:{},
         product:{
@@ -29,9 +66,95 @@ const app = new Vue({
             price:'',
         },
         errors:'',
-        edit_true:true
+        edit_true: true,
+        deleteModal: {
+          id: 'delete-modal',
+        },
+        options : {
+          transformAssetUrls: {
+            video: ['src', 'poster'],
+            source: 'src',
+            img: 'src',
+            image: 'xlink:href',
+            'b-img': 'src',
+            'b-img-lazy': ['src', 'blank-src'],
+            'b-card': 'img-src',
+            'b-card-img': 'src',
+            'b-card-img-lazy': ['src', 'blank-src'],
+            'b-carousel-slide': 'img-src',
+            'b-embed': 'src'
+          }
+        }
     },
     methods:{
+        add_student(){
+            axios.post('save-student',{
+                first_name:this.student.first_name,
+                last_name:this.student.last_name,
+                email:this.student.email,
+            })
+                .then(response=>{
+                    this.get_students()
+                    //console.log(response)
+                    this.student.first_name = '';
+                    this.student.last_name = '';
+                    this.student.email = '';
+                })
+                .catch(error=>{
+                    if(error.response.status==422){
+                        this.errors = error.response.data.errors
+                    }
+                })
+
+        },
+        get_students(){
+            axios.get('get-students')
+            .then(response=>this.students = response.data);
+            console.log("Students in method: ", this.students);
+        },
+        delete_student(id,index){
+            axios.get('del-student/'+id)
+            .then(response=>this.students.splice(index,1))
+
+        },
+        edit_student(id){
+            this.edit_true = false;
+            axios.get('edit-student/'+id)
+            .then(response=>{
+                //console.log("Student to edit: ", response.data);
+                var student =  response.data;
+                this.student.id = student.id;
+                this.student.first_name = student.first_name;
+                this.student.last_name = student.last_name;
+                this.student.email = student.email;
+            })
+
+        },
+        update_student(){
+            this.edit_true = true;
+            axios.post('update-student',{
+                id:this.student.id,
+                first_name:this.student.first_name,
+                last_name:this.student.last_name,
+                email:this.student.email,
+            })
+                .then(response=>{
+                    this.get_students()
+                    // console.log(response)
+                    this.student.first_name = '';
+                    this.student.last_name = '';
+                    this.student.email = '';
+                })
+                .catch(error=>{
+                    if(error.response.status==422){
+                        this.errors = error.response.data.errors
+                    }
+                })
+
+        },
+        delete(button) {
+            this.$root.$emit('bv::show::modal', this.deleteModal.id, button);
+        },
         add_product(){
             axios.post('save-post',{
                 name:this.product.name,
@@ -96,7 +219,11 @@ const app = new Vue({
 
         },
     },
+    mounted(){
+        console.log("Students in mounted: ", this.students);
+    },
     created(){
         this.get_product();
+        this.get_students();
     }
 });

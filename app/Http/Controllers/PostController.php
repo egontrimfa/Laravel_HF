@@ -17,7 +17,7 @@ class PostController extends Controller
        $post->name = $request->name;
        $post->desc = $request->desc;
        $post->price = $request->price;
-        $post->save();
+       $post->save();
        return response()->json($post);
 
    }
